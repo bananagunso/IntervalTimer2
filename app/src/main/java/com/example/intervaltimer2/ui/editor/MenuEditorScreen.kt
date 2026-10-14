@@ -85,6 +85,9 @@ fun MenuEditorScreen(
     var editingStep by remember { mutableStateOf<ExerciseStep?>(null) }
     var showStepDialog by remember { mutableStateOf(false) }
 
+    var stepToDeleteIndex by remember { mutableIntStateOf(-1) }
+    var stepToDelete by remember { mutableStateOf<ExerciseStep?>(null) }
+
     val stepPresets by repository.stepPresets.collectAsState()
 
     Scaffold(
@@ -213,9 +216,8 @@ fun MenuEditorScreen(
                                     steps = newSteps
                                 },
                                 onDelete = {
-                                    val newSteps = steps.toMutableList()
-                                    newSteps.removeAt(index)
-                                    steps = newSteps
+                                    stepToDeleteIndex = index
+                                    stepToDelete = step
                                 },
                                 onMoveUp = {
                                     if (index > 0) {
@@ -239,6 +241,32 @@ fun MenuEditorScreen(
                 }
             }
         }
+    }
+
+    // ステップ削除の確認ダイアログ
+    stepToDelete?.let { targetStep ->
+        AlertDialog(
+            onDismissRequest = { stepToDelete = null },
+            title = { Text("ステップの削除") },
+            text = { Text("「${targetStep.label}」を削除しますか？") },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (stepToDeleteIndex in steps.indices) {
+                        val newSteps = steps.toMutableList()
+                        newSteps.removeAt(stepToDeleteIndex)
+                        steps = newSteps
+                    }
+                    stepToDelete = null
+                }) {
+                    Text("削除", color = Color.Red)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { stepToDelete = null }) {
+                    Text("キャンセル")
+                }
+            }
+        )
     }
 
     // ステップ編集ダイアログ
@@ -309,7 +337,6 @@ private fun StepEditCard(
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // 「時間:」ラベルは無しで時間のみ (例: 5分0秒)
                     Text(
                         text = formatStepTime(step.durationSeconds),
                         style = MaterialTheme.typography.bodySmall,
@@ -396,8 +423,8 @@ private fun StepEditorDialog(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // 登録済みテンプレートチップ一覧 (タップで適用、赤いゴミ箱アイコンで削除確認)
-                Text("テンプレート (タップで適用):", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                // 登録済みテンプレートチップ一覧 (タップで適用、ゴミ箱アイコンで削除確認)
+                Text("テンプレート (タップで適用 / 🗑で削除):", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
                 Spacer(modifier = Modifier.height(4.dp))
 
                 FlowRow(
@@ -433,7 +460,7 @@ private fun StepEditorDialog(
                                     Icon(
                                         imageVector = Icons.Default.Delete,
                                         contentDescription = "削除",
-                                        tint = Color.Red, // 他の削除ボタンと同様の赤色に統一！
+                                        tint = Color.Red,
                                         modifier = Modifier.size(16.dp)
                                     )
                                 }
@@ -491,7 +518,7 @@ private fun StepEditorDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // カラーパレット選択 (UD 10色)
+                // カラーパレット選択
                 Text("表示カラー:", style = MaterialTheme.typography.bodyMedium)
                 Spacer(modifier = Modifier.height(6.dp))
 
