@@ -1,6 +1,8 @@
 package com.example.intervaltimer2.ui.timer
 
+import android.app.Activity
 import android.content.res.Configuration
+import android.view.WindowManager
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -41,6 +43,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -48,6 +51,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -63,8 +67,18 @@ fun WorkoutTimerScreen(
     timerEngine: WorkoutTimerEngine,
     onBackToList: () -> Unit
 ) {
+    val context = LocalContext.current
     val uiState by timerEngine.uiState.collectAsState()
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+    // タイマー実行画面が開いている間は、画面の自動スリープ（消灯）を防止！
+    DisposableEffect(Unit) {
+        val window = (context as? Activity)?.window
+        window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        onDispose {
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
 
     val stepColor = parseColorHex(uiState.currentStep?.colorHex ?: "#121212")
 
@@ -489,18 +503,18 @@ private fun ControlButtons(
                 .size(72.dp)
                 .background(
                     if (uiState.isFinished) {
-                        Color(0xFF00E676) // 完了時は明るいグリーン
+                        Color(0xFF00E676)
                     } else if (uiState.isRunning && !uiState.isPaused) {
-                        Color(0xFFFF9800) // 一時停止オレンジ
+                        Color(0xFFFF9800)
                     } else {
-                        Color(0xFF4CAF50) // スタートグリーン
+                        Color(0xFF4CAF50)
                     },
                     CircleShape
                 )
         ) {
             Icon(
                 imageVector = if (uiState.isFinished) {
-                    Icons.Default.Check // 完了チェックマーク
+                    Icons.Default.Check
                 } else if (uiState.isRunning && !uiState.isPaused) {
                     Icons.Default.Pause
                 } else {
